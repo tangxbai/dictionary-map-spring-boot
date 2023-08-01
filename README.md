@@ -234,6 +234,59 @@ boolean remove( Locale locale, String key, Integer code ); // 删除字典项【
 
 
 
+### 关于语义化的说明
+
+> 原始表格数据
+
+| id   | type | key                | code | alias | text             |
+| ---- | ---- | ------------------ | ---- | ----- | ---------------- |
+| 1    | TEXT | settings.title     | 0    |       | 字典映射         |
+| 2    | TEXT | settings.author    | 0    |       | tangxbai         |
+| 3    | TEXT | settings.copyright | 0    |       | 2023             |
+| 4    | TEXT | demo.level.A       | 0    |       | 多层级文本       |
+| 5    | TEXT | demo.level.B       | 0    |       | 多层级文本数组 A |
+| 6    | TEXT | demo.level.B       | 0    |       | 多层级文本数组 B |
+| 7    | TEXT | demo.level.B       | 0    |       | 多层级文本数组 C |
+| 8    | ENUM | demo.level.C       | 1    | em    | 多层级枚举       |
+| 8    | ENUM | demo.level.D       | 1    | em    | 多层级枚举数组 A |
+| 8    | ENUM | demo.level.D       | 2    | em    | 多层级枚举数组 B |
+
+> 接口响应的 JSON 化数据
+
+```json
+{    
+    "settings": {
+        "title": "字典映射",
+        "author": "tangxbai",
+        "copyright": "2023"
+    },
+    {
+        "demo": {
+            "level": {
+                "A": "多层级文本",
+                "B": [ "多层级文本数组 A", "多层级文本数组 B", "多层级文本数组 C" ],
+                "C" : {
+                    "code": 1,
+                    "text": "多层级枚举"
+                },
+                "D" : [
+                    {
+                        "code": 1,
+                        "text": "多层级枚举数组 A"
+                    },
+                    {
+                        "code": 2,
+                        "text": "多层级枚举数组 B"
+                    }
+                ]
+            }
+        }
+    }
+}
+```
+
+
+
 ### 切换国际化
 
 1、通过配置项 `spring.dict.locale` 来指定语言环境，这种属于固定语言种类，无法切换其他语言；
