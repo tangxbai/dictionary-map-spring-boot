@@ -1,0 +1,83 @@
+{
+	"properties": [
+		{
+            "name": "spring.dict.jackson.enable",
+            "type": "java.lang.Boolean",
+            "description": "Turn Jackson's dictionary parsing on or off",
+            "sourceType": "com.viiyue.plugins.dict.spring.boot.autoconfigure.config.resolver.DictionaryJsonDeserializer",
+            "defaultValue": true
+        },
+        {
+            "name": "spring.dict.redis-first",
+            "type": "java.lang.Boolean",
+            "description": "Whether to enable redis as a dictionary cache first",
+            "sourceType": "com.viiyue.plugins.dict.spring.boot.autoconfigure.config.DictionaryProperties",
+            "defaultValue": true
+        },
+        {
+            "name": "spring.dict.loaded-default",
+            "type": "java.lang.Boolean",
+            "description": "Whether to load default dictionary data after the program starts",
+            "sourceType": "com.viiyue.plugins.dict.spring.boot.autoconfigure.config.DictionaryProperties",
+            "defaultValue": true
+        },
+        {
+            "name": "spring.dict.locale",
+            "type": "java.lang.Locale",
+            "description": "Set the default fixed language",
+            "sourceType": "com.viiyue.plugins.dict.spring.boot.autoconfigure.config.DictionaryProperties"
+        },
+        {
+            "name": "spring.dict.locale-query",
+            "type": "java.lang.String",
+            "description": "The language request query name",
+            "sourceType": "com.viiyue.plugins.dict.spring.boot.autoconfigure.config.DictionaryProperties",
+            "defaultValue": "lang"
+        },
+        {
+            "name": "spring.dict.locale-argument-resolver",
+            "type": "java.lang.Boolean",
+            "description": "Whether to enable the Locale parameter resolver based on the spring framework",
+            "sourceType": "com.viiyue.plugins.dict.spring.boot.autoconfigure.config.DictionaryProperties",
+            "defaultValue": true
+        },
+        {
+            "name": "spring.dict.small-batch-size",
+            "type": "java.lang.Integer",
+            "description": "The minimum threshold for bulk operations",
+            "sourceType": "com.viiyue.plugins.dict.spring.boot.autoconfigure.config.DictionaryProperties",
+            "defaultValue": 500
+        },
+        {
+            "name": "spring.dict.big-batch-size",
+            "type": "java.lang.Integer",
+            "description": "The maximum threshold for bulk operations",
+            "sourceType": "com.viiyue.plugins.dict.spring.boot.autoconfigure.config.DictionaryProperties",
+            "defaultValue": 1000
+        },
+        {
+            "name": "spring.dict.cache-key",
+            "type": "java.lang.String",
+            "description": "The prefix of the Redis cache key( default value: \"cacheable:dict:\")",
+            "sourceType": "com.viiyue.plugins.dict.spring.boot.autoconfigure.config.DictionaryProperties"
+        },
+        {
+            "name": "spring.dict.dict-table",
+            "type": "java.lang.String",
+            "description": "The name of the dictionary table( default: \"global_dictionary\" )",
+            "sourceType": "com.viiyue.plugins.dict.spring.boot.autoconfigure.config.DictionaryProperties"
+        },
+        {
+            "name": "spring.dict.lang-table",
+            "type": "java.lang.String",
+            "description": "The name of the dictionary language table( default: \"global_dictionary_lang\" )",
+            "sourceType": "com.viiyue.plugins.dict.spring.boot.autoconfigure.config.DictionaryProperties"
+        },
+        {
+            "name": "spring.dict.column-wrap-text",
+            "type": "java.lang.String",
+            "description": "The wrapping character for the table column",
+            "sourceType": "com.viiyue.plugins.dict.spring.boot.autoconfigure.config.DictionaryProperties"
+        }
+	]
+}

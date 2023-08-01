@@ -1,0 +1,20 @@
+# maven #
+target/
+
+# idea #
+.idea/
+*.iml
+
+# eclipse #
+.settings/
+.classpath
+.factorypath
+.project
+
+# log #
+*.log
+log/
+
+# spring
+.springBeans
+.apt_generated/
