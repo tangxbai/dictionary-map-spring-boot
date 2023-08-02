@@ -65,11 +65,23 @@ public class ParameterBridge {
     }
 
     public boolean isLogEnable() {
-        return props().isLogEnable();
+        return props.isLogEnable();
+    }
+    
+    public void printLog( String message ) {
+        props.printLog( message );
+    }
+    
+    public void printLog( String message, Object arg ) {
+        props.printLog( message, arg );
+    }
+    
+    public void printLog( String message, Object arg1, Object arg2 ) {
+        props.printLog( message, arg1, arg2 );
     }
     
     public void printLog( String message, Object ... varargs ) {
-        props().printLog( message, varargs );
+        props.printLog( message, varargs );
     }
     
     public Locale locale() {

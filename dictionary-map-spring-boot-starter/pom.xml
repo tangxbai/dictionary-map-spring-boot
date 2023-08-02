@@ -28,6 +28,7 @@
 
 	<artifactId>dictionary-map-spring-boot-starter</artifactId>
 	<name>dictionary-map-spring-boot-starter</name>
+	<packaging>jar</packaging>
 
 	<dependencies>
 		<dependency>

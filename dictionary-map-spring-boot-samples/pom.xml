@@ -28,6 +28,7 @@
 
 	<artifactId>dictionary-map-spring-boot-samples</artifactId>
 	<name>dictionary-map-spring-boot-samples</name>
+	<packaging>jar</packaging>
 
 	<dependencies>
 		<dependency>
@@ -64,4 +65,21 @@
             <artifactId>mysql-connector-java</artifactId>
         </dependency>
 	</dependencies>
+
+	<build>
+	   <plugins>
+	        <plugin>
+	            <groupId>org.springframework.boot</groupId>
+	            <artifactId>spring-boot-maven-plugin</artifactId>
+	            <version>${spring-boot.version}</version>
+	            <executions>
+	                <execution>
+	                    <goals>
+	                        <goal>repackage</goal>
+	                    </goals>
+	                </execution>
+	            </executions>
+	        </plugin>
+	    </plugins>
+	</build>
 </project>
