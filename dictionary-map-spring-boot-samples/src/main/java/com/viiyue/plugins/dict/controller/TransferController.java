@@ -49,10 +49,10 @@ public class TransferController {
      * @param target 从请求参数中获取
      * @param accept 从请求头中获取
      * @param spring 从spring国际化中获取
-     * @return
+     * @return 封装后的集合对象
      */
     @GetMapping( "/locale" )
-    public Map<String, Locale> locale( 
+    public Map<String, Locale> localeAutoConvert( 
         Locale source, // Query parameter( source=zh-CN )
         Locale target, // Query parameter( target=zh-CN )
         @FromHeader Locale accept, // Http header( "Accepte-Language": "zh-CN" )
@@ -75,12 +75,30 @@ public class TransferController {
      * TO: "gender" = &lt;Dictionary&gt; // Bean
      * </pre>
      * 
-     * @param gender
-     * @return
+     * @param gender 字典对象
+     * @return 字典对象
      */
-    @GetMapping( "/query/auto-wrapper" )
-    public Dictionary locale( @Dict( "user.gender" ) Dictionary gender ) {
+    @GetMapping( "/query/param/auto-wrapper" )
+    public Dictionary paramAutoWrapper( @Dict( "user.gender" ) Dictionary gender ) {
         return gender;
+    }
+    
+    /**
+     * 自动封装到对象属性中
+     * 
+     * <pre>
+     * URL: /transfer/query/auto-wrapper?gender=1
+     * URL: /transfer/query/auto-wrapper?gender=male
+     * 
+     * TO: "gender" = &lt;Dictionary&gt; // Bean
+     * </pre>
+     * 
+     * @param user 实体Bean
+     * @return 实体Bean
+     */
+    @GetMapping( "/query/object/auto-wrapper" )
+    public User formAutoWrapper( User user ) {
+        return user;
     }
     
     /**
@@ -99,11 +117,11 @@ public class TransferController {
      * }<hr>
      * </pre>
      * 
-     * @param user
-     * @return
+     * @param user 实体Bean
+     * @return 实体Bean
      */
     @GetMapping( "/body/auto-wrapper" )
-    public User locale( @RequestBody User user ) {
+    public User jsonAutoWrapper( @RequestBody User user ) {
         return user;
     }
     
@@ -111,8 +129,14 @@ public class TransferController {
     @Setter
     public static class User {
         private String name;
-        @Dict( "settings.title" ) Dictionary title; // 自动转换的数据必须用 @Dict 指定字典 key
-        @Dict( "user.gender" ) Dictionary gender;   // 自动转换的数据必须用 @Dict 指定字典 key
+
+        // 自动转换的数据必须用 @Dict 指定字典 key
+        @Dict( "settings.title" )
+        private Dictionary title;
+
+        // 自动转换的数据必须用 @Dict 指定字典 key
+        @Dict( "user.gender" )
+        private Dictionary gender;
     }
     
 }

@@ -24,6 +24,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.viiyue.plugins.dict.mapper.UserMapper;
+import com.viiyue.plugins.dict.model.User;
 import com.viiyue.plugins.dict.spring.boot.DictManager;
 import com.viiyue.plugins.dict.spring.boot.meta.Dictionary;
 
@@ -39,6 +41,14 @@ public class QueryableController {
     
     @Autowired
     private DictManager dictManager;
+    
+    @Autowired
+    private UserMapper userMapper;
+    
+    @GetMapping("/user")
+    public List<User> queryUserAll() {
+        return userMapper.selectAll();
+    }
 
     /**
      * 以JSON视图化的方式平铺展开字典数据

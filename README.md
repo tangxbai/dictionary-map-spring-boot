@@ -22,13 +22,78 @@
 
 - **支持国际化**：方便快捷的拓展语言种类，并支持从已有语种上拷贝备份；
 - **支持语言扩展**：可随意添加或复制新的语种；
-- **支持CRUD**：提供对字典表进行增删改查等操作，CRUD 等操作会自动更新缓存信息；
+- **支持CRUD**：提供对字典表进行增删改查等，并且如果涉及到缓存时会自动更新缓存；
 - **支持自动缓存**：数据操作过后自动缓存，并可以指定数据缓存方式（内存或者基于Redis）；                  
 - **数据语义化**：通过将字典键进行处理，返回语义化的字典表数据（便于前端处理的格式）；
 - **自动参数转换**：支持通过传递 code/alias 转换成字典实体对象，普通传参方式和 JavaBean 均可。
 - **支持各种查询**：查询指定键的字典列表，或者精确匹配，亦或是查询所有字典列表等；
 - **使用多样化**：提供静态上下文直接访问，或者是使用spring进行对象注入等；
-- **自定义国际化方式**：可以通过请求头自动获取，也可以通过请求参数获取，更可以直接定死语言；
+- **自定义国际化方式**：可以通过请求头获取，也可以通过请求参数获取，更可以直接固定语言；
+
+
+
+### 关于语义化的说明
+
+> 原始表格数据
+
+| id   | type | key                | code | alias | text             |
+| ---- | ---- | ------------------ | ---- | ----- | ---------------- |
+| 1    | TEXT | settings.title     | 0    |       | 字典映射         |
+| 2    | TEXT | settings.author    | 0    |       | tangxbai         |
+| 3    | TEXT | settings.copyright | 0    |       | 2023             |
+| 4    | TEXT | demo.level.A       | 0    |       | 多层级文本       |
+| 5    | TEXT | demo.level.B       | 0    |       | 多层级文本数组 A |
+| 6    | TEXT | demo.level.B       | 0    |       | 多层级文本数组 B |
+| 7    | TEXT | demo.level.B       | 0    |       | 多层级文本数组 C |
+| 8    | ENUM | demo.level.C       | 1    | em    | 多层级枚举       |
+| 8    | ENUM | demo.level.D       | 1    | em    | 多层级枚举数组 A |
+| 8    | ENUM | demo.level.D       | 2    | em    | 多层级枚举数组 B |
+
+> 接口响应的 JSON 化数据
+
+```json
+{    
+    "settings": {
+        "title": "字典映射",
+        "author": "tangxbai",
+        "copyright": "2023"
+    },
+    {
+        "demo": {
+            "level": {
+                "A": "多层级文本",
+                "B": [ "多层级文本数组 A", "多层级文本数组 B", "多层级文本数组 C" ],
+                "C" : {
+                    "code": 1,
+                    "text": "多层级枚举"
+                },
+                "D" : [
+                    {
+                        "code": 1,
+                        "text": "多层级枚举数组 A"
+                    },
+                    {
+                        "code": 2,
+                        "text": "多层级枚举数组 B"
+                    }
+                ]
+            }
+        }
+    }
+}
+```
+
+
+
+### 切换国际化
+
+1、通过配置项 `spring.dict.locale` 来指定语言环境，这种属于固定语言种类，无法切换其他语言；
+
+2、通过请求参数中携带 `lang` 参数来确定语言，比如：`?lang=zh-CN`等，此属性可以通过 `spring.dict.locale-query` 配置项来更改；
+
+3、通过请求头携带的语言，自动获取请求头 `Accept-Language` 中的指定的语言种类；
+
+*请注意：决定国际化语言的 **优先级** 按照序号从高到低进行排列*
 
 
 
@@ -160,6 +225,12 @@ Maven方式（**推荐**）
             <td>String</td>
             <td>global_dictionary_lang</td>
         </tr>
+         <tr>
+            <td>spring.dict.expands</td>
+            <td>语义化展开的字段</td>
+            <td>String[]</td>
+            <td>["code", "text"]</td>
+        </tr>
         <tr>
             <td>spring.dict.column-wrap-text</td>
             <td>数据库列的包裹字符，用于区分关键字和自定义字符，避免自定义字符被认定为关键字</td>
@@ -168,6 +239,7 @@ Maven方式（**推荐**）
         </tr>
     </tbody>
 </table>
+
 
 
 
@@ -231,71 +303,6 @@ int updateBatch( Locale locale, List<Dictionary dictionaries ); // 批量更新�
 boolean change( Locale locale, String key, Integer code, boolean status ); // 更改字典项状态【locale为空则更新所有】
 boolean remove( Locale locale, String key, Integer code ); // 删除字典项【locale为空则更新所有】
 ```
-
-
-
-### 关于语义化的说明
-
-> 原始表格数据
-
-| id   | type | key                | code | alias | text             |
-| ---- | ---- | ------------------ | ---- | ----- | ---------------- |
-| 1    | TEXT | settings.title     | 0    |       | 字典映射         |
-| 2    | TEXT | settings.author    | 0    |       | tangxbai         |
-| 3    | TEXT | settings.copyright | 0    |       | 2023             |
-| 4    | TEXT | demo.level.A       | 0    |       | 多层级文本       |
-| 5    | TEXT | demo.level.B       | 0    |       | 多层级文本数组 A |
-| 6    | TEXT | demo.level.B       | 0    |       | 多层级文本数组 B |
-| 7    | TEXT | demo.level.B       | 0    |       | 多层级文本数组 C |
-| 8    | ENUM | demo.level.C       | 1    | em    | 多层级枚举       |
-| 8    | ENUM | demo.level.D       | 1    | em    | 多层级枚举数组 A |
-| 8    | ENUM | demo.level.D       | 2    | em    | 多层级枚举数组 B |
-
-> 接口响应的 JSON 化数据
-
-```json
-{    
-    "settings": {
-        "title": "字典映射",
-        "author": "tangxbai",
-        "copyright": "2023"
-    },
-    {
-        "demo": {
-            "level": {
-                "A": "多层级文本",
-                "B": [ "多层级文本数组 A", "多层级文本数组 B", "多层级文本数组 C" ],
-                "C" : {
-                    "code": 1,
-                    "text": "多层级枚举"
-                },
-                "D" : [
-                    {
-                        "code": 1,
-                        "text": "多层级枚举数组 A"
-                    },
-                    {
-                        "code": 2,
-                        "text": "多层级枚举数组 B"
-                    }
-                ]
-            }
-        }
-    }
-}
-```
-
-
-
-### 切换国际化
-
-1、通过配置项 `spring.dict.locale` 来指定语言环境，这种属于固定语言种类，无法切换其他语言；
-
-2、通过请求参数中携带 `lang` 参数来确定语言，比如：`?lang=zh-CN`等，此属性可以通过 `spring.dict.locale-query` 配置项来更改；
-
-3、通过请求头携带的语言，自动获取请求头 `Accept-Language` 中的指定的语言种类；
-
-*请注意：决定国际化语言的 **优先级** 按照序号从高到低进行排列*
 
 
 
@@ -368,6 +375,139 @@ public class DictionaryConfiguration {
     }
     
 }
+```
+
+
+
+### 类型自动转换
+
+##### 1、输入转换
+
+1.1、在数据库实体中，通过向 mybatis 中注册类型处理器 **DictionaryTypeHandler ** 提供转换支持
+
+```java
+com.viiyue.plugins.dict.spring.boot.config.mybatis.DictionaryInterceptor
+com.viiyue.plugins.dict.spring.boot.config.mybatis.DictionaryTypeHandler
+```
+
+```java
+@Table( name = "t_your_table" )
+public class YourModelBean {
+
+    @Id
+    private Long id;
+    
+    @Dict( "user.gender" )
+    private Dictionary gender; // 数据库的 code 值会自动转换为字典对象
+    
+    @Dict( "dict.key.xxx" )
+    private Dictionary xxxxxx; // 数据库的 code 值会自动转换为字典对象
+    
+}
+```
+
+1.2、在请求参数中，通过向 Spring 注册参数解析器 **DictionaryArgumentResolver ** 提供转换支持
+
+```java
+com.viiyue.plugins.dict.spring.boot.config.resolver.DictionaryArgumentResolver
+```
+
+```java
+URL: /query/xxx?gender=1
+
+@GetMapping( "/query/xxx" )
+public void doQuery( @Dict( "user.gender" ) Dictionary gender ) {
+    System.out.println( gender );
+}
+```
+
+1.3、在对象属性中
+
+```java
+com.viiyue.plugins.dict.spring.boot.config.resolver.DictionaryConverter
+com.viiyue.plugins.dict.spring.boot.config.resolver.DictionaryJsonSerializer
+```
+
+```java
+public class User {
+    private int id;
+    private String username;
+    @Dict( "user.gender" ) 
+    private Dictionary gender;
+}
+
+/** 
+ * 1、From 表单
+ * 通过向 Spring 注册 Converter 提供转换支持
+ *
+ * @param user 表单参数
+ * @see com.viiyue.plugins.dict.spring.boot.config.resolver.DictionaryConverter
+ */
+@GetMapping( "/query/xxx" )
+public void doQuery( User user ) {
+    System.out.println( user );
+}
+
+/** 
+ * 2、JSON 参数
+ * 通过向 Jackson 中注册 JsonSerrializer 提供转换支持
+ *
+ * @param user JSON格式的参数
+ * @see com.viiyue.plugins.dict.spring.boot.config.resolver.DictionaryJsonSerializer
+ */
+@GetMapping( "/query/xxx" )
+public void doQuery( @RrquestBody User user ) {
+	System.out.println( user );
+}
+```
+
+##### 2、输出转换
+
+```java
+public class User {
+    private int id;
+    private String username;
+    private Dictionary gender;
+}
+
+@RestController
+@RequestMapping( "/demo" )
+public class YourController {
+    
+    @Autowired
+    private YourService service;
+    
+    @GetMapping( "/users" )
+    public List<User> doQuery() {
+        return service.selectAll();
+    } 
+    
+}
+```
+
+```json
+// 请求URL
+URL: /demo/users
+
+// 响应结果
+[
+    {
+        "id": 1,
+        "username": "xxx",
+        "gender": {
+            "code": 1,
+            "text": "Male"
+        }
+    },
+   	{
+        "id": 2,
+        "username": "yyy",
+        "gender": {
+            "code": 2,
+            "text": "Famale"
+        }
+    }
+]
 ```
 
 

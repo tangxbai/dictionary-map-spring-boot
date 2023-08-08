@@ -28,11 +28,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.convert.converter.ConverterRegistry;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -46,6 +47,7 @@ import org.springframework.web.servlet.support.RequestContextUtils;
 import com.viiyue.plugins.dict.spring.boot.DictContext;
 import com.viiyue.plugins.dict.spring.boot.DictManager;
 import com.viiyue.plugins.dict.spring.boot.config.resolver.DictionaryArgumentResolver;
+import com.viiyue.plugins.dict.spring.boot.config.resolver.DictionaryConverter;
 import com.viiyue.plugins.dict.spring.boot.config.resolver.LocaleArgumentResolver;
 import com.viiyue.plugins.dict.spring.boot.dialect.DefaultSqlResolver;
 import com.viiyue.plugins.dict.spring.boot.dialect.SqlResolver;
@@ -162,17 +164,26 @@ class DictionaryAutoConfiguration implements ApplicationListener<ApplicationStar
 
     @Override
     public void onApplicationEvent( ApplicationStartedEvent event ) {
+        ConfigurableApplicationContext context = event.getApplicationContext();
+        
+        DictManager dictManager = context.getBean( DictManager.class );
+        RequestMappingHandlerAdapter handlerAdapter = context.getBean( RequestMappingHandlerAdapter.class );
+        List<HandlerMethodArgumentResolver> defaults = handlerAdapter.getArgumentResolvers();
+        List<HandlerMethodArgumentResolver> argumentResolvers = new ArrayList<>( defaults.size() + 1 );
+        
+        // Locale argument resolver for spring
         if ( props.isLocaleArgumentResolver() ) {
-            ApplicationContext context = event.getApplicationContext();
-            DictManager dictManager = context.getBean( DictManager.class );
-            RequestMappingHandlerAdapter handlerAdapter = context.getBean( RequestMappingHandlerAdapter.class );
-            List<HandlerMethodArgumentResolver> defaults = handlerAdapter.getArgumentResolvers();
-            List<HandlerMethodArgumentResolver> argumentResolvers = new ArrayList<>( defaults.size() + 1 );
             argumentResolvers.add( new LocaleArgumentResolver( props ) );
-            argumentResolvers.add( new DictionaryArgumentResolver( dictManager, props ) );
-            argumentResolvers.addAll( defaults );
-            handlerAdapter.setArgumentResolvers( Collections.unmodifiableList( argumentResolvers ) );
         }
+        
+        // Query parameter resolver for spring
+        argumentResolvers.add( new DictionaryArgumentResolver( dictManager, props ) );
+        argumentResolvers.addAll( defaults );
+        handlerAdapter.setArgumentResolvers( Collections.unmodifiableList( argumentResolvers ) );
+        
+        // Object dictionary converter for spring
+        ConverterRegistry converterRegistry = context.getBean( ConverterRegistry.class );
+        converterRegistry.addConverter( new DictionaryConverter( dictManager ) );
     }
-
+    
 }

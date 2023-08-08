@@ -24,6 +24,7 @@ import java.util.StringJoiner;
 import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
 
+import com.viiyue.plugins.dict.spring.boot.config.DictionaryProperties;
 import com.viiyue.plugins.dict.spring.boot.utils.BeanMapper;
 
 import lombok.Getter;
@@ -89,7 +90,7 @@ public class Dictionary extends BaseEntity implements Serializable {
         return this;
     }
 
-    public Object toObject( ParameterBridge bridge ) {
+    public Object toObject( DictionaryProperties props ) {
         if ( !enabled() ) {
             return null;
         }
@@ -97,7 +98,7 @@ public class Dictionary extends BaseEntity implements Serializable {
             return text;
         }
         if ( TYPE_ENUM.equals( type ) ) {
-            return MAPPER.toValues( this, false, bridge.props().getExpands() );
+            return MAPPER.toValues( this, false, props.getExpands() );
         }
         return this;
     }

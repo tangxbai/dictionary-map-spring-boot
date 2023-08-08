@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerBase;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerFactory;
@@ -57,6 +58,7 @@ public class DictionaryJsonDeserializer extends JsonDeserializer<Dictionary> {
     private static final Map<Class<?>, Map<String, String>> FIELDS = new ConcurrentHashMap<>( 128 );
 
     private final DictionaryProperties props;
+    private BeanDeserializerBase oringinalDeserializer;
     
     public DictionaryJsonDeserializer( DictionaryProperties props ) {
         this.props = props;
@@ -69,17 +71,18 @@ public class DictionaryJsonDeserializer extends JsonDeserializer<Dictionary> {
 
         // JSON → Dictionary
         if ( JsonToken.START_OBJECT == token ) {
-            BeanDeserializerFactory bdf = ( BeanDeserializerFactory ) ctx.getFactory();
-            JavaType javaType = ctx.constructType( Dictionary.class );
-            BeanDescription description = ctx.getConfig().introspect( javaType );
-            JsonDeserializer<Object> deserializer = bdf.buildBeanDeserializer( ctx, javaType, description );
-            if ( deserializer instanceof BeanDeserializerBase ) {
-                ( ( BeanDeserializerBase ) deserializer ).resolve( ctx );
+            BeanDeserializerBase deserializer = initOriginalDeserializer( ctx );
+            if ( deserializer != null ) {
+                deserializer.resolve( ctx );
+                if ( props.isLogEnable() ) {
+                    props.printLog( "Deserializer JSON string as a dictionary object" );
+                }
+                return ( Dictionary ) deserializer.deserialize( parser, ctx );
+            } else {
+                if ( props.isLogEnable() ) {
+                    props.printLog( "Cannot deserializer JSON string as a dictionary object" );
+                }
             }
-            if ( props.isLogEnable() ) {
-                props.printLog( "Deserializer JSON string as a dictionary object" );
-            }
-            return ( Dictionary ) deserializer.deserialize( parser, ctx );
         }
 
         // Jackson parsing context
@@ -134,6 +137,19 @@ public class DictionaryJsonDeserializer extends JsonDeserializer<Dictionary> {
             FIELDS.put( beanType, dicts );
         }
         return dicts.get( fieldName );
+    }
+    
+    private BeanDeserializerBase initOriginalDeserializer( DeserializationContext ctx ) throws JsonMappingException {
+        if ( oringinalDeserializer == null ) {
+            BeanDeserializerFactory bdf = ( BeanDeserializerFactory ) ctx.getFactory();
+            JavaType javaType = ctx.constructType( Dictionary.class );
+            BeanDescription description = ctx.getConfig().introspect( javaType );
+            JsonDeserializer<Object> deserializer = bdf.buildBeanDeserializer( ctx, javaType, description );
+            if ( deserializer instanceof BeanDeserializerBase ) {
+                this.oringinalDeserializer = ( BeanDeserializerBase ) deserializer;
+            }
+        }
+        return this.oringinalDeserializer;
     }
 
 }
