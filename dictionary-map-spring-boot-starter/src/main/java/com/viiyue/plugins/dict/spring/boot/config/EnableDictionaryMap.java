@@ -24,7 +24,9 @@ import java.lang.annotation.Target;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.Order;
 
+import com.viiyue.plugins.dict.spring.boot.config.mybatis.MybatisAutoConfiguration;
 import com.viiyue.plugins.dict.spring.boot.config.resolver.DictionaryJsonDeserializer;
+import com.viiyue.plugins.dict.spring.boot.config.resolver.DictionaryJsonSerializer;
 
 /**
  * Enable support for dictionary map components
@@ -36,5 +38,9 @@ import com.viiyue.plugins.dict.spring.boot.config.resolver.DictionaryJsonDeseria
 @Retention( RetentionPolicy.RUNTIME )
 @Documented
 @Order( Integer.MAX_VALUE )
-@Import( { DictionaryAutoConfiguration.class, DictionaryJsonDeserializer.class } )
+@Import( { 
+    DictionaryAutoConfiguration.class, 
+    MybatisAutoConfiguration.class, 
+    DictionaryJsonSerializer.class, 
+    DictionaryJsonDeserializer.class } )
 public @interface EnableDictionaryMap {}

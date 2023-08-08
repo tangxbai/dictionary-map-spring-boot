@@ -188,7 +188,7 @@ class CacheableManager<K> extends AbstractManager {
         Map<String, Object> dictionary = new HashMap<>( 128 );
         for ( Dictionary dict : dicts ) {
             String key = dict.getKey();
-            Object element = dict.toObject( bridge );
+            Object element = dict.toObject( bridge.props() );
             if ( element == null ) {
                 continue;
             }

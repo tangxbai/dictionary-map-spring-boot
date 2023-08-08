@@ -13,24 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.viiyue.plugins.dict.spring.boot.manager.core;
+package com.viiyue.plugins.dict.mapper;
 
-/**
- * Cached data resolver, which abstracts how data is cached.
- *
- * @author tangxbai
- * @since 1.0.0 
- */
-public abstract class CacheableResolver<K> {
-    
-    public abstract boolean existsKey( K key );
+import com.viiyue.plugins.dict.model.User;
+import com.viiyue.plugins.mybatis.mapper.Mapper;
 
-    public abstract void setValue( K key, Object value );
+@org.apache.ibatis.annotations.Mapper
+public interface UserMapper extends Mapper<User, User, Long> {
 
-    public abstract Object getValue( Object key );
-
-    public abstract boolean clear( K key );
-
-    public abstract void clearLanguage( String language );
-    
 }
