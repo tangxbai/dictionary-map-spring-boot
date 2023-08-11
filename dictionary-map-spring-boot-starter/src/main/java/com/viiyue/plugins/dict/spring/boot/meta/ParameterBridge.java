@@ -18,7 +18,7 @@ package com.viiyue.plugins.dict.spring.boot.meta;
 import static org.springframework.util.ObjectUtils.isEmpty;
 
 import java.util.Locale;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import org.springframework.util.StringUtils;
 
@@ -91,6 +91,10 @@ public class ParameterBridge {
     public String getLanguage() {
         return toLanguage( locale() );
     }
+    
+    public String getLanguage( String lang ) {
+        return lang == null ? getLanguage() : lang;
+    }
 
     public String getLanguage( Locale locale ) {
         return toLanguage( locale == null ? locale() : locale );
@@ -107,54 +111,71 @@ public class ParameterBridge {
     public String toLanguage( String language ) {
         return language == null ? null : language.toLowerCase( Locale.ENGLISH ).replace( '-', '_' );
     }
+    
+    public String splitWithKey( String theKey ) {
+        if ( isEmpty( theKey ) ) {
+            return theKey;
+        }
+        String baseKey = props.getCacheKey();
+        if ( theKey.startsWith( baseKey ) ) {
+            return theKey.substring( baseKey.length() );
+        }
+        return theKey;
+    }
+    
+    public String resetCacheKey( String theKey, String delimiter ) {
+        return isEmpty( theKey ) ? theKey : StringUtils.replace( theKey, delimiter, props.getDemiliter() );
+    }
 
-    public String toCacheKey( String cacheKey, String other, String delimiter ) {
+    public String toCacheKey( String cacheKey, String theKey, String delimiter ) {
         if ( cacheKey == null ) {
             cacheKey = props.getCacheKey();
         }
-        if ( isEmpty( other ) ) {
+        if ( isEmpty( theKey ) ) {
             return cacheKey;
         }
-        other = StringUtils.replace( other, ".", delimiter );
-        if ( cacheKey.endsWith( delimiter ) ) {
-            return cacheKey.concat( other );
+        if ( theKey.startsWith( cacheKey ) ) {
+            return theKey;
         }
-        return cacheKey.concat( delimiter ).concat( other );
+        if ( cacheKey.endsWith( theKey ) ) {
+            return cacheKey;
+        }
+        theKey = StringUtils.replace( theKey, props.getDemiliter(), delimiter );
+        if ( cacheKey.endsWith( delimiter ) ) {
+            return cacheKey.concat( theKey );
+        }
+        return cacheKey.concat( delimiter ).concat( theKey );
     }
 
-    public <T> T fallbackWithLanguage( String language, Function<String, T> fun ) {
-        if ( language == null ) {
-            language = getLanguage();
-        }
+    public <T> T fallbackWithLanguage( String language, BiFunction<String, String, T> fun ) {
         if ( isEmpty( language ) ) {
             if ( isLogEnable() ) {
                 printLog( "Query in the default language ..." );
             }
-            return fun.apply( null );
+            return fun.apply( null, null );
         }
-        
         if ( isLogEnable() ) {
             printLog( "Query in the given language: \"{}\" ...", language );
         }
-        T returnedValue = fun.apply( language );
+        T returnedValue = fun.apply( language, language );
         if ( !isEmpty( returnedValue ) ) {
             return returnedValue;
         }
-        for ( int index = 0; ( index = language.lastIndexOf( '_' ) ) > -1; ) {
-            language = language.substring( 0, index );
+        String temp = language;
+        for ( int index = 0; ( index = temp.lastIndexOf( '_' ) ) > -1; ) {
+            temp = temp.substring( 0, index );
             if ( isLogEnable() ) {
-                printLog( "Fallback uses \"{}\" to query ...", language );
+                printLog( "Fallback uses \"{}\" to query ...", temp );
             }
-            returnedValue = fun.apply( language );
+            returnedValue = fun.apply( language, temp );
             if ( !isEmpty( returnedValue ) ) {
                 return returnedValue;
             }
         }
-        
         if ( isLogEnable() ) {
             printLog( "Finally, try it in the default language ..." );
         }
-        return fun.apply( null );
+        return fun.apply( language, null );
     }
 
 }

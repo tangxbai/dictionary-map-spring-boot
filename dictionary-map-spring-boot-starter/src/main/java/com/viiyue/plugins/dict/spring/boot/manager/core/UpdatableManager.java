@@ -62,23 +62,23 @@ class UpdatableManager extends AbstractDbManager {
      */
     public final <T extends BaseEntity> int insert( String table, T bean ) {
         bean.onCreate();
+        if ( bridge.isLogEnable() ) {
+            bridge.printLog( "Ready to insert data into the \"{}\" table ...", table );
+        }
         Map<String, Object> mapping = toValues( bean, true, map -> {
             if ( bean.getId() == null && bridge.hasIdResolver() ) {
+                Long nextId = bridge.nextId();
                 map.put( "id", bridge.nextId() );
+                if ( bridge.isLogEnable() ) {
+                    bridge.printLog( "Generate the id value( {} )", nextId );
+                }
             }
         });
         if ( bridge.isLogEnable() ) {
-            bridge.printLog( "Ready to insert data into the \"{}\" table ...", table );
             bridge.printLog( "The data map is: {}", mapping );
         }
         String sql = bridge.sql().insert( table, mapping );
-        if ( bean.getId() == null && bridge.hasIdResolver() ) {
-            bean.setId( bridge.nextId() );
-            if ( bridge.isLogEnable() ) {
-                bridge.printLog( "Generate the ID primary key value( {} )", bean.getId() );
-            }
-        }
-        return execute( 0, sql, statement -> {
+        return doExecute( 0, sql, statement -> {
             int index = 1;
             for ( Map.Entry<String, Object> entry : mapping.entrySet() ) {
                 statement.setObject( index ++, entry.getValue() );
@@ -142,7 +142,8 @@ class UpdatableManager extends AbstractDbManager {
 
             // OUTPUT -> INSERT INTO {TABLE} VALUES (?, ?, ...), (?, ?, ...), ...
             String sql = bridge.sql().insert( table, values.toString() );
-            rows = execute( 0, sql, statement -> {
+            
+            rows = doTransactional( 0, conn -> doStatement( conn, 0, sql, statement -> {
                 int index = 1;
                 for ( Map<String, Object> mapping : mapValues ) {
                     if ( !isEmpty( mapping ) ) {
@@ -152,7 +153,7 @@ class UpdatableManager extends AbstractDbManager {
                     }
                 }
                 return statement.executeUpdate();
-            } );
+            } ) );
         } else {
             if ( bridge.isLogEnable() ) {
                 bridge.printLog( "Now that the data size exceeds {}, use the high-volume scheme.", size );
@@ -186,7 +187,7 @@ class UpdatableManager extends AbstractDbManager {
             bridge.printLog( "Ready to update table \"{}\" ...", table );
             bridge.printLog( "The data map is: {}", mapping );
         }
-        return execute( 0, sql, statement -> {
+        return doExecute( 0, sql, statement -> {
             int index = 1;
             for ( Map.Entry<String, Object> entry : mapping.entrySet() ) {
                 statement.setObject( index ++, entry.getValue() );
@@ -236,7 +237,7 @@ class UpdatableManager extends AbstractDbManager {
     }
 
     private <T extends BaseEntity> int executeBatch( String sql, List<Map<String, Object>> beans, boolean withId ) {
-        return execute( 0, sql, statement -> {
+        return doTransactional( 0, conn -> doStatement( conn, 0, sql, statement -> {
             int row = 0;
             int size = beans.size();
             for ( int i = 0; i < size; i ++ ) {
@@ -263,7 +264,7 @@ class UpdatableManager extends AbstractDbManager {
                 statement.clearBatch();
             }
             return row;
-        } );
+        } ) );
     }
 
 }

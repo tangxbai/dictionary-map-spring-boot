@@ -45,7 +45,8 @@ class QueryableManager extends AbstractDbManager {
 
     public final List<Language> queryLanguages() {
         String table = bridge.props().getLanguageTable();
-        return queryList( Language.class, "language", bridge.sql().query( table ), Language::new, null );
+        String sql = bridge.sql().queryAndOrderBy( table, "order_index" );
+        return queryList( Language.class, "language", sql, Language::new, null );
     }
 
     public Dictionary queryById( String language, Long id ) {
@@ -90,13 +91,37 @@ class QueryableManager extends AbstractDbManager {
             }
         } );
     }
-
-    public final <T extends BaseEntity> List<T> queryList( Class<?> beanType, String language, String sql, Supplier<T> supplier,
+    
+    public final <T extends BaseEntity> T queryOne( Class<?> beanType, String sql, Supplier<T> supplier,
             SqlConsumer<PreparedStatement> consumer ) {
+        return doExecute( null, sql, statement -> {
+            if ( consumer != null ) {
+                consumer.apply( statement );
+            }
+            ResultSet result = statement.executeQuery();
+            ResultSetMetaData metadata = result.getMetaData();
+            int columnCount = metadata.getColumnCount();
+            T instance = supplier.get();
+            while ( result.next() ) {
+                for ( int i = 1; i <= columnCount; i ++ ) {
+                    String column = metadata.getColumnLabel( i );
+                    BeanProperty property = getProperty( beanType, column );
+                    if ( property != null ) {
+                        property.setValue( instance, result, i );
+                    }
+                }
+                instance.onConstruct();
+            }
+            return instance;
+        } );
+    }
+
+    public final <T extends BaseEntity> List<T> queryList( Class<?> beanType, String language, String sql,
+            Supplier<T> supplier, SqlConsumer<PreparedStatement> consumer ) {
         if ( bridge.isLogEnable() ) {
             bridge.printLog( "Try Querying \"{}\" data from the database ...", language );
         }
-        return execute( null, sql, statement -> {
+        return doExecute( null, sql, statement -> {
             if ( consumer != null ) {
                 consumer.apply( statement );
             }

@@ -15,6 +15,8 @@
  */
 package com.viiyue.plugins.dict.spring.boot.manager.core;
 
+import java.util.Set;
+
 /**
  * Cached data resolver, which abstracts how data is cached.
  *
@@ -22,6 +24,8 @@ package com.viiyue.plugins.dict.spring.boot.manager.core;
  * @since 1.0.0 
  */
 public abstract class CacheableResolver<K> {
+    
+    public abstract Set<K> getKeys( String language );
     
     public abstract boolean existsKey( K key );
 

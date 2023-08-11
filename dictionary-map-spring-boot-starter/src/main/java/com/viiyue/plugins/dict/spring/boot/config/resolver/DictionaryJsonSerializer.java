@@ -23,6 +23,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.jackson.JsonComponent;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonStreamContext;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.WritableTypeId;
 import com.fasterxml.jackson.databind.BeanDescription;
@@ -68,7 +69,8 @@ public class DictionaryJsonSerializer extends JsonSerializer<Dictionary> {
 
     @Override
     public void serialize( Dictionary value, JsonGenerator gen, SerializerProvider serializers ) throws IOException {
-        doSerialize( value, gen, serializers, false );
+        JsonStreamContext context = gen.getOutputContext();
+        doSerialize( value, gen, serializers, context.inRoot() || context.inArray() );
     }
     
     private void doSerialize( Dictionary value, JsonGenerator gen, SerializerProvider serializers, boolean internal )

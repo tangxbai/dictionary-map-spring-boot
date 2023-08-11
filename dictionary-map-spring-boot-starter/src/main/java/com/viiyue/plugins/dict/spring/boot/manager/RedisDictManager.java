@@ -21,6 +21,7 @@ import java.util.Set;
 import javax.sql.DataSource;
 
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.util.ObjectUtils;
 
 import com.viiyue.plugins.dict.spring.boot.manager.core.AbstractDictManager;
 import com.viiyue.plugins.dict.spring.boot.meta.ParameterBridge;
@@ -39,15 +40,20 @@ public class RedisDictManager<K> extends AbstractDictManager<K> {
         super( bridge, dataSource );
         this.redis = redisTemplate;
     }
+    
+    @Override
+    public Set<K> getKeys( String language ) {
+        return redis.keys( ( K ) ( bridge.props().getCacheKey() + "*:" + language ) );
+    }
 
     @Override
     public boolean existsKey( K key ) {
         Boolean hasKey = redis.hasKey( key );
         if ( bridge.isLogEnable() ) {
             if ( Boolean.TRUE.equals( hasKey ) ) {
-                bridge.printLog( "Key \"{}\" exists in the Redis cache", key );
+                bridge.printLog( "Key \"{}\" exists in the Redis cache.", key );
             } else {
-                bridge.printLog(  "Key \"{}\" does not exist in the redis cache", key );
+                bridge.printLog(  "Key \"{}\" does not exist in the redis cache.", key );
             }
         }
         return hasKey;
@@ -57,14 +63,16 @@ public class RedisDictManager<K> extends AbstractDictManager<K> {
     public Object getValue( Object key ) {
         Object cachedValue = redis.opsForValue().get( key );
         if ( bridge.isLogEnable() ) {
-            bridge.printLog( "Get the cached value of key \"{}\" from the Redis", key );
+            bridge.printLog( "Get the cached value of key \"{}\" from the Redis ...", key );
             if ( cachedValue != null ) {
                 int size = cachedValue instanceof Collection ? ( ( Collection<?> ) cachedValue ).size() : 1;
                 if ( size > 1 ) {
-                    bridge.printLog( "{} pieces of data were found in Memory.", size );
+                    bridge.printLog( "{} pieces of data were found in Redis.", size );
                 } else {
-                    bridge.printLog( "The target data was found in Memory." );
+                    bridge.printLog( "The target data was found in Redis." );
                 }
+            } else {
+                bridge.printLog( "No cache for \"{}\" found in Redis.", key );
             }
         }
         return cachedValue;
@@ -72,23 +80,23 @@ public class RedisDictManager<K> extends AbstractDictManager<K> {
     
     @Override
     public void setValue( K key, Object value ) {
-        redis.opsForValue().set( key, value );
         if ( bridge.isLogEnable() ) {
-            bridge.printLog( "Set the cache value of key \"{}\" to Redis", key );
+            bridge.printLog( "Set the cache value of key \"{}\" to Redis.", key );
         }
+        redis.opsForValue().set( key, value );
     }
 
     @Override
     public boolean clear( K key ) {
         if ( bridge.isLogEnable() ) {
-            bridge.printLog( "Clear the cache value with the cache key of \"{}\"", key );
+            bridge.printLog( "Start clearing cache \"{}\" ...", key );
         }
         Boolean deleted = redis.delete( key );
         if ( bridge.isLogEnable() ) {
             if ( deleted ) {
-                bridge.printLog( "Cleanup succeeded" );
+                bridge.printLog( "\"{}\" cleanup succeeded.", key );
             } else {
-                bridge.printLog( "Invalid cleanup" );
+                bridge.printLog( "\"{}\" cleanup failed.", key );
             }
         }
         return deleted;
@@ -96,15 +104,19 @@ public class RedisDictManager<K> extends AbstractDictManager<K> {
 
     @Override
     public void clearLanguage( String language ) {
-        String cacheKey = bridge.props().getCacheKey();
-        Set<K> keys = redis.keys( ( K ) ( cacheKey + "*:" + language ) );
         if ( bridge.isLogEnable() ) {
-            bridge.printLog( "Clear all redis cache data whose cache keys end in \"{}\"", language );
-            bridge.printLog( "The list keys: {}", keys );
+            bridge.printLog( "Start clearing all cached data ending in \"{}\" ...", language );
         }
-        if ( keys != null && keys.size() > 0 ) {
-            redis.delete( keys );
+        Set<K> keys = getKeys( language );
+        if ( !ObjectUtils.isEmpty( keys ) ) {
+            Long number = redis.delete( keys );
+            if ( bridge.isLogEnable() ) {
+                bridge.printLog( "The keys waiting to be cleaned: {}.", keys );
+                bridge.printLog( "Number of cleanup completions: {}.", number );
+            }
+        } else if ( bridge.isLogEnable() ) {
+            bridge.printLog( "There are no keys to clean up." );
         }
     }
-
+    
 }

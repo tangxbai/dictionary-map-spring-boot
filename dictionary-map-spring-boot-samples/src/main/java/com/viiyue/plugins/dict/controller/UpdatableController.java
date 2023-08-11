@@ -91,8 +91,8 @@ public class UpdatableController {
      * @param dictionaries 字典列表
      */
     @PutMapping( "/dict/batches" )
-    public void updateBatch( @Nullable Locale lang, @RequestBody List<Dictionary> dictionaries ) {
-        dictManager.updateBatch( lang, dictionaries );
+    public Integer updateBatch( @Nullable Locale lang, @RequestBody List<Dictionary> dictionaries ) {
+        return dictManager.updateBatch( lang, dictionaries );
     }
 
     /**

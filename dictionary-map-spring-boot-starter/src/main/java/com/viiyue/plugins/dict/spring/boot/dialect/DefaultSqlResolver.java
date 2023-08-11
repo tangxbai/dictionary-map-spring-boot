@@ -64,6 +64,11 @@ public class DefaultSqlResolver extends SqlResolver {
         }
         return statement;
     }
+    
+    @Override
+    public String queryAndOrderBy( String table, String orderBy ) {
+        return MessageFormat.format( QUERY_AND_ORDER_BY, props.wrap( table ), props.wrap( orderBy ) );
+    }
 
     @Override
     public String queryWithin( String table, String column, Object ... values ) {

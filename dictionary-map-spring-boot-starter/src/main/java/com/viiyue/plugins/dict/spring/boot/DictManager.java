@@ -27,10 +27,10 @@ import java.util.function.Predicate;
 
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
 
 import com.viiyue.plugins.dict.spring.boot.meta.Dictionary;
 import com.viiyue.plugins.dict.spring.boot.meta.Language;
+import com.viiyue.plugins.dict.spring.boot.utils.Assert;
 
 /**
  * Dictionary Core Manager, which is used to centrally maintain various APIs for dictionaries.
@@ -144,7 +144,7 @@ public interface DictManager {
      * @return the dictionaries
      */
     default List<Dictionary> getAlways( @NonNull String ... keys ) {
-        Assert.notEmpty( keys, "The redis cache keys cannot be null" );
+        Assert.notEmpty( keys, 5, "The cache keys cannot be null or empty" );
         List<Dictionary> dicts = new ArrayList<>( 16 );
         Arrays.asList( keys ).forEach( key -> dicts.addAll( getAlways( key ) ) );
         return dicts;
@@ -204,7 +204,7 @@ public interface DictManager {
      * @return the final matching dictionary value
      */
     default Dictionary matching( @NonNull String key, Predicate<Dictionary> predicate ) {
-        Assert.notNull( key, "Please specify a dictionary key" );
+        Assert.notNull( key, 2, "Please specify a dictionary key" );
         if ( predicate == null ) {
             return null;
         }

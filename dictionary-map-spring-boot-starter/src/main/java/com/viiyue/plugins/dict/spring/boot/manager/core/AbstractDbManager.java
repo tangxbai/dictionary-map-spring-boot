@@ -17,6 +17,7 @@ package com.viiyue.plugins.dict.spring.boot.manager.core;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.SQLSyntaxErrorException;
 import java.sql.Statement;
 import java.util.Objects;
@@ -25,6 +26,7 @@ import javax.sql.DataSource;
 
 import com.viiyue.plugins.dict.spring.boot.function.SqlProvider;
 import com.viiyue.plugins.dict.spring.boot.meta.ParameterBridge;
+import com.viiyue.plugins.dict.spring.boot.utils.Assert;
 import com.viiyue.plugins.dict.spring.boot.utils.Helper;
 
 import lombok.extern.slf4j.Slf4j;
@@ -55,49 +57,93 @@ class AbstractDbManager extends AbstractManager {
 
     private void printSQL( String original, Statement statement ) {
         String sqlString = statement.toString();
-        String sqlText = sqlString.substring( sqlString.indexOf( ':' ) + 2 );
+        int index = sqlString.indexOf( ':' );
+        String sqlText = index >= 0 ? sqlString.substring( index + 2 ) : sqlString;
         if ( !Objects.equals( sqlText, original ) && bridge.isLogEnable() ) {
             bridge.printLog( "==> {}", sqlText );
         }
     }
 
-    protected int update( String sql ) {
-        return execute( 0, sql, statement -> statement.executeUpdate() );
+    private void printError( Exception e ) {
+        if ( Helper.LOG.isErrorEnabled() ) {
+            log.error( e.getMessage(), e );
+        } else {
+            e.printStackTrace();
+        }
     }
 
-    protected <R> R execute( R defValue, String sql, SqlProvider<PreparedStatement, R> fun ) {
+    private boolean handleTableNotExist( Exception e ) {
+        if ( e instanceof SQLSyntaxErrorException ) {
+            String state = ( ( SQLSyntaxErrorException ) e ).getSQLState();
+            if ( Objects.equals( SQL_STATE_TABLE_OR_VIEW_NOT_FOUND, state ) ) {
+                if ( Helper.LOG.isWarnEnabled() ) {
+                    Helper.LOG.warn( "==> {}", e.getMessage() );
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected int update( String sql ) {
+        return doExecute( 0, sql, statement -> statement.executeUpdate() );
+    }
+
+    protected <R> R doStatement( Connection conn, R defValue, String sql, SqlProvider<PreparedStatement, R> fun )
+            throws SQLException {
+        try ( PreparedStatement statement = conn.prepareStatement( sql ) ) {
+            R result = fun.apply( statement );
+            printSQL( sql, statement );
+            if ( bridge.isLogEnable() ) {
+                bridge.printLog( "The statement executed successfully" );
+            }
+            return result;
+        }
+    }
+
+    protected <R> R doExecute( R defValue, String sql, SqlProvider<PreparedStatement, R> fun ) {
         try {
             printSQL( sql );
-            try ( Connection connection = dataSource.getConnection() ) {
-                try ( PreparedStatement statement = connection.prepareStatement( sql ) ) {
-                    R result = fun.apply( statement );
-                    printSQL( sql, statement );
-                    if ( bridge.isLogEnable() ) {
-                        bridge.printLog( "The statement executed successfully" );
-                    }
-                    return result;
-                }
+            try ( Connection conn = dataSource.getConnection() ) {
+                return doStatement( conn, defValue, sql, fun );
             }
         } catch ( Exception e ) {
-            boolean handled = false;
-            if ( e instanceof SQLSyntaxErrorException ) {
-                String state = ( ( SQLSyntaxErrorException ) e ).getSQLState();
-                if ( Objects.equals( SQL_STATE_TABLE_OR_VIEW_NOT_FOUND, state ) ) {
-                    handled = true;
-                    if ( Helper.LOG.isWarnEnabled() ) {
-                        Helper.LOG.warn( "==> {}", e.getMessage() );
-                    }
-                }
-            }
-            if ( !handled ) {
-                if ( Helper.LOG.isErrorEnabled() ) {
-                    log.error( e.getMessage(), e );
-                } else {
-                    e.printStackTrace();
-                }
+            if ( !handleTableNotExist( e ) ) {
+                printError( e );
             }
             return defValue;
         }
     }
 
+    protected <R> R doTransactional( R defValue, SqlProvider<Connection, R> fun ) {
+        Assert.notNull( fun, 1, "You must specify a Function interface" );
+        Connection connection = null;
+        try {
+            connection = dataSource.getConnection();
+            connection.setAutoCommit( false );
+            R result = fun.apply( connection );
+            connection.commit();
+            return result;
+        } catch ( Exception e ) {
+            try {
+                connection.rollback();
+            } catch ( SQLException e1 ) {
+                printError( e );
+            }
+            if ( !handleTableNotExist( e ) ) {
+                printError( e );
+            }
+            return defValue;
+        } finally {
+            if ( connection != null ) {
+                try {
+                    connection.setAutoCommit( true );
+                    connection.close();
+                } catch ( SQLException e ) {
+                    printError( e );
+                }
+            }
+        }
+    }
+    
 }

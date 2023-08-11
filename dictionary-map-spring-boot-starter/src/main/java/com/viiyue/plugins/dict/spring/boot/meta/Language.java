@@ -18,6 +18,7 @@ package com.viiyue.plugins.dict.spring.boot.meta;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.Objects;
 
 import org.springframework.util.StringUtils;
 
@@ -42,6 +43,7 @@ public class Language extends BaseEntity implements Serializable {
     @Setter( AccessLevel.NONE )
     private Locale lang; // COLUMN
     private String label; // COLUMN
+    private Integer orderIndex; // COLUMN
     private LocalDateTime createTime; // COLUMN
 
     @Getter( AccessLevel.NONE )
@@ -71,6 +73,14 @@ public class Language extends BaseEntity implements Serializable {
         if ( locale != null && lang != null ) {
             this.displayLabel = lang.getDisplayName( locale );
         }
+    }
+    
+    public boolean sameWith( Locale another ) {
+        return Objects.equals( lang, another );
+    }
+    
+    public boolean sameWith( String another ) {
+        return another != null && ( Objects.equals( language, another ) || another.equalsIgnoreCase( language ) );
     }
 
     @Override

@@ -30,11 +30,11 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import org.springframework.util.Assert;
-
+import com.viiyue.plugins.dict.spring.boot.config.DictionaryProperties;
 import com.viiyue.plugins.dict.spring.boot.meta.Dictionary;
 import com.viiyue.plugins.dict.spring.boot.meta.Language;
 import com.viiyue.plugins.dict.spring.boot.meta.ParameterBridge;
+import com.viiyue.plugins.dict.spring.boot.utils.Assert;
 
 /**
  * An abstract data cache manager for operating data and caching results
@@ -49,7 +49,7 @@ class CacheableManager<K> extends AbstractManager {
 
     private final QueryableManager queryable;
     private final CacheableResolver<K> valueResolver;
-    final String delimiter, cacheKey, cacheAll, expandAll, languageListKey;
+    protected final String delimiter, cacheKey, cacheAll, expandAll, languageListKey;
 
     public CacheableManager( ParameterBridge bridge, QueryableManager queryable, CacheableResolver<K> valueResolver,
             String delimiter ) {
@@ -71,14 +71,6 @@ class CacheableManager<K> extends AbstractManager {
         return ( K ) ( isEmpty( language ) ? key : bridge.toCacheKey( key, language, delimiter ) );
     }
 
-    public boolean clear( K key ) {
-        return valueResolver.clear( key );
-    }
-
-    public void clearLanguage( String language ) {
-        valueResolver.clearLanguage( language );
-    }
-
     public List<Language> loadLanguages() {
         Object cachedValue = valueResolver.getValue( languageListKey );
         if ( cachedValue == null ) {
@@ -88,64 +80,45 @@ class CacheableManager<K> extends AbstractManager {
         return ( List<Language> ) cachedValue;
     }
 
-    public List<Dictionary> loadAll( String lang ) {
-        return bridge.fallbackWithLanguage( lang, language -> {
-            K languageKey = keyWithLanguage( cacheAll, language );
-            Object cachedValue = loadAllObject( language, languageKey, true );
-            if ( cachedValue != null ) {
-                makeReferenceIfNecessary( lang, cacheAll, languageKey );
+    public List<Dictionary> loadAll( String language ) {
+        return bridge.fallbackWithLanguage( language, ( input, current ) -> {
+            K languageKey = keyWithLanguage( cacheAll, current );
+            Object cachedValue = loadAllObject( current, languageKey, true );
+            if ( cachedValue != null && !Objects.equals( input, current ) ) {
+                makeReferenceIfNecessary( keyWithLanguage( cacheAll, input ), languageKey );
             }
             return theList( cachedValue );
         } );
     }
 
-    public void reloadAllIfNecessary( String lang ) {
-        // All list
-        K allKey = keyWithLanguage( cacheAll, lang );
-        if ( valueResolver.clear( allKey ) ) {
-            loadAll( lang );
-        }
-        // Expanded list
-        allKey = keyWithLanguage( expandAll, lang );
-        if ( valueResolver.clear( allKey ) ) {
-            expandAll( lang );
-        }
-    }
-
-    public List<Dictionary> loadByKey( String lang, String key ) {
-        Assert.notNull( key, "The cache key cannot be null" );
+    public List<Dictionary> loadByKey( String language, String key ) {
+        Assert.notNull( key, 2, "The cache key cannot be null" );
         String cacheKey = bridge.toCacheKey( null, key, delimiter );
-        return bridge.fallbackWithLanguage( lang, language -> {
-            K languageKey = keyWithLanguage( cacheKey, language );
-            Object cachedValue = readObject( language, languageKey, true, () -> {
-                List<Dictionary> valueList = queryable.queryByKey( language, key );
+        return bridge.fallbackWithLanguage( language, ( input, current ) -> {
+            K languageKey = keyWithLanguage( cacheKey, current );
+            Object cachedValue = readObject( current, languageKey, true, () -> {
+                List<Dictionary> valueList = queryable.queryByKey( current, key );
                 if ( valueList != null ) {
                     valueResolver.setValue( languageKey, valueList );
-                    makeReferenceIfNecessary( lang, cacheKey, languageKey );
                     refreshAllIfNecessary( valueList, changes -> {
-                        valueResolver.setValue( keyWithLanguage( cacheAll, language ), changes );
+                        valueResolver.setValue( keyWithLanguage( cacheAll, current ), changes );
                     } );
                 }
                 return valueList;
             } );
+            if ( cachedValue != null && !Objects.equals( input, current ) ) {
+                makeReferenceIfNecessary( keyWithLanguage( cacheKey, input ), languageKey );
+            }
             return theList( cachedValue );
         } );
     }
-
-    public void reloadKeyIfNecessary( String lang, String key ) {
-        String cacheKey = toCacheKey( key );
-        K keyWithLanguage = keyWithLanguage( cacheKey, lang );
-        if ( valueResolver.clear( keyWithLanguage ) ) {
-            loadByKey( lang, key );
-        }
-    }
-
-    public Map<String, Object> expandAll( String lang ) {
-        return bridge.fallbackWithLanguage( lang, language -> {
-            K languageKey = keyWithLanguage( expandAll, language );
-            Object cachedValue = readObject( language, languageKey, true, () -> {
-                K allLanguageKey = keyWithLanguage( cacheAll, language );
-                Object valueList = loadAllObject( language, allLanguageKey, false );
+    
+    public Map<String, Object> expandAll( String language ) {
+        return bridge.fallbackWithLanguage( language, ( input, current ) -> {
+            K languageKey = keyWithLanguage( expandAll, current );
+            Object cachedValue = readObject( current, languageKey, true, () -> {
+                K allLanguageKey = keyWithLanguage( cacheAll, current );
+                Object valueList = loadAllObject( current, allLanguageKey, false );
                 if ( valueList != null ) {
                     Map<String, Object> expanded = expandAll( ( List<Dictionary> ) valueList );
                     valueResolver.setValue( languageKey, expanded );
@@ -153,11 +126,53 @@ class CacheableManager<K> extends AbstractManager {
                 }
                 return null;
             } );
-            if ( cachedValue != null ) {
-                makeReferenceIfNecessary( lang, expandAll, languageKey );
+            if ( cachedValue != null && !Objects.equals( input, current ) ) {
+                makeReferenceIfNecessary( keyWithLanguage( expandAll, input ), languageKey );
             }
             return theMap( cachedValue );
         } );
+    }
+    
+    public void reloadLanguagesIfNecessary() {
+        if ( valueResolver.clear( ( K ) languageListKey ) ) {
+            loadLanguages();
+        }
+    }
+    
+    public void reloadAllIfNecessary( String language ) {
+        K theKey = keyWithLanguage( cacheAll, language );
+        if ( valueResolver.clear( theKey ) ) {
+            loadAll( language );
+        }
+    }
+    
+    public void reloadExpandAllIfNecessary( String language ) {
+        K theKey = keyWithLanguage( expandAll, language );
+        if ( valueResolver.clear( theKey ) ) {
+            expandAll( language );
+        }
+    }
+
+    public void reloadKeyIfNecessary( String language, String key ) {
+        String cacheKey = toCacheKey( key );
+        K keyWithLanguage = keyWithLanguage( cacheKey, language );
+        if ( valueResolver.clear( keyWithLanguage ) ) {
+            loadByKey( language, key );
+        }
+    }
+
+    private List<Dictionary> theList( Object cached ) {
+        return cached == null ? emptyList() : ( List<Dictionary> ) cached;
+    }
+
+    private Map<String, Object> theMap( Object cached ) {
+        return cached == null ? emptyMap() : ( Map<String, Object> ) cached;
+    }
+
+    private void makeReferenceIfNecessary( K originalKey, K languageKey ) {
+        if ( !Objects.equals( originalKey, languageKey ) ) {
+            valueResolver.setValue( originalKey, getRervertedKeyOrValue( languageKey, true ) );
+        }
     }
 
     private Object loadAllObject( String language, K languageKey, boolean revert ) {
@@ -180,24 +195,54 @@ class CacheableManager<K> extends AbstractManager {
         }
         return cachedValue;
     }
+    
+    private Object getRervertedKeyOrValue( Object specifiedKey, boolean returnKey ) {
+        Object theKey = null;
+        Object theValue = null;
+        do {
+            theKey = theValue == null ? specifiedKey : theValue;
+            theValue = valueResolver.getValue( theKey );
+        } while ( !isEmpty( theValue ) && theValue instanceof String );
+        return returnKey ? theKey : theValue;
+    }
+    
+    private void refreshAllIfNecessary( List<Dictionary> dicts, Consumer<List<Dictionary>> changed ) {
+        K allKey = keyWithLanguage( cacheAll, bridge.getLanguage() );
+        if ( valueResolver.existsKey( allKey ) ) {
+            List<Dictionary> allList = loadAll( null );
+            if ( !isEmpty( allList ) ) {
+                Map<Long, Dictionary> map = dicts.stream().collect( TO_MAP );
+                boolean isChanged = allList.stream().filter( dict -> {
+                    Dictionary item = map.get( dict.getId() );
+                    return item != null && !item.equals( dict );
+                } ).count() > 0;
+                if ( isChanged ) {
+                    List<Dictionary> changedList = allList.stream()
+                            .map( dict -> map.getOrDefault( dict.getId(), dict ) ).collect( Collectors.toList() );
+                    changed.accept( changedList );
+                }
+            }
+        }
+    }
 
     private Map<String, Object> expandAll( List<Dictionary> dicts ) {
         if ( isEmpty( dicts ) ) {
             return Collections.emptyMap();
         }
+        DictionaryProperties props = bridge.props();
         Map<String, Object> dictionary = new HashMap<>( 128 );
         for ( Dictionary dict : dicts ) {
             String key = dict.getKey();
-            Object element = dict.toObject( bridge.props() );
+            Object element = dict.toObject( props );
             if ( element == null ) {
                 continue;
             }
-            if ( !key.contains( "." ) ) {
+            if ( !key.contains( props.getDemiliter() ) ) {
                 dictionary.put( key, element );
                 continue;
             }
 
-            String [] keys = key.split( "\\." );
+            String [] keys = key.split( "\\" + props.getDemiliter() );
             Map<String, Object> last = dictionary;
 
             // Create each layer of containers
@@ -228,52 +273,6 @@ class CacheableManager<K> extends AbstractManager {
             }
         }
         return dictionary;
-    }
-
-    private final void refreshAllIfNecessary( List<Dictionary> dicts, Consumer<List<Dictionary>> changed ) {
-        K allKey = keyWithLanguage( cacheAll, bridge.getLanguage() );
-        if ( valueResolver.existsKey( allKey ) ) {
-            List<Dictionary> allList = loadAll( null );
-            if ( !isEmpty( allList ) ) {
-                Map<Long, Dictionary> map = dicts.stream().collect( TO_MAP );
-                boolean isChanged = allList.stream().filter( dict -> {
-                    Dictionary item = map.get( dict.getId() );
-                    return item != null && !item.equals( dict );
-                } ).count() > 0;
-                if ( isChanged ) {
-                    List<Dictionary> changedList = allList.stream()
-                            .map( dict -> map.getOrDefault( dict.getId(), dict ) ).collect( Collectors.toList() );
-                    changed.accept( changedList );
-                }
-            }
-        }
-    }
-
-    private List<Dictionary> theList( Object cached ) {
-        return cached == null ? emptyList() : ( List<Dictionary> ) cached;
-    }
-
-    private Map<String, Object> theMap( Object cached ) {
-        return cached == null ? emptyMap() : ( Map<String, Object> ) cached;
-    }
-
-    private void makeReferenceIfNecessary( String language, String key, K languageKey ) {
-        if ( !Objects.equals( key, languageKey ) ) {
-            K originalKey = keyWithLanguage( key, language == null ? bridge.getLanguage() : language );
-            if ( !Objects.equals( originalKey, languageKey ) ) {
-                valueResolver.setValue( originalKey, getRervertedKeyOrValue( languageKey, true ) );
-            }
-        }
-    }
-
-    private Object getRervertedKeyOrValue( Object specifiedKey, boolean returnKey ) {
-        Object theKey = null;
-        Object theValue = null;
-        do {
-            theKey = theValue == null ? specifiedKey : theValue;
-            theValue = valueResolver.getValue( theKey );
-        } while ( isEmpty( theValue ) || theValue instanceof String );
-        return returnKey ? theKey : theValue;
     }
 
 }

@@ -49,8 +49,8 @@ public class RemovableController {
      * @param code 字典 {@code code}，可为空，为空则忽略此条件。
      */
     @DeleteMapping( "/dict" )
-    public void remove( @Nullable Locale lang, @NonNull String key, @Nullable Integer code ) {
-        dictManager.remove( lang, key, code );
+    public Integer remove( @Nullable Locale lang, @NonNull String key, @Nullable Integer code ) {
+        return dictManager.remove( lang, key, code );
     }
 
     /**
@@ -62,18 +62,8 @@ public class RemovableController {
      * @param code 字典 {@code code}，可为空，为空则忽略此条件。
      */
     @DeleteMapping( "/dict/all" )
-    public void removeAll( @NonNull String key, @Nullable Integer code ) {
-        dictManager.removeAll( key, code );
-    }
-
-    /**
-     * 删除一个字典语种
-     * 
-     * @param lang 语言，不允许为空。
-     */
-    @DeleteMapping( "/language" )
-    public void removeLanguage( @NonNull Locale lang ) {
-        dictManager.removeLanguage( lang );
+    public Integer removeAll( @NonNull String key, @Nullable Integer code ) {
+        return dictManager.removeAll( key, code );
     }
 
 }

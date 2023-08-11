@@ -19,8 +19,11 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
+
+import org.springframework.util.ObjectUtils;
 
 import com.viiyue.plugins.dict.spring.boot.manager.core.AbstractDictManager;
 import com.viiyue.plugins.dict.spring.boot.meta.ParameterBridge;
@@ -40,13 +43,18 @@ public class MemoryDictManager extends AbstractDictManager<String> {
     }
 
     @Override
+    public Set<String> getKeys( String language ) {
+        return caches.keySet().stream().filter( key -> key.endsWith( language ) ).collect( Collectors.toSet() );
+    }
+    
+    @Override
     public boolean existsKey( String key ) {
         Boolean hasKey = caches.containsKey( key );
         if ( bridge.isLogEnable() ) {
             if ( Boolean.TRUE.equals( hasKey ) ) {
-                bridge.printLog( "Key \"{}\" exists in the Memory cache", key );
+                bridge.printLog( "Key \"{}\" exists in the Memory cache.", key );
             } else {
-                bridge.printLog( "Key \"{}\" does not exist in the Memory cache", key );
+                bridge.printLog( "Key \"{}\" does not exist in the Memory cache.", key );
             }
         }
         return hasKey;
@@ -56,7 +64,7 @@ public class MemoryDictManager extends AbstractDictManager<String> {
     public Object getValue( Object key ) {
         Object cachedValue = caches.get( key );
         if ( bridge.isLogEnable() ) {
-            bridge.printLog( "Get the cached value of key \"{}\" from the Memory", key );
+            bridge.printLog( "Get the cached value of key \"{}\" from the Memory ...", key );
             if ( cachedValue != null ) {
                 int size = cachedValue instanceof Collection ? ( ( Collection<?> ) cachedValue ).size() : 1;
                 if ( size > 1 ) {
@@ -64,6 +72,8 @@ public class MemoryDictManager extends AbstractDictManager<String> {
                 } else {
                     bridge.printLog( "The target data was found in Memory." );
                 }
+            } else {
+                bridge.printLog( "No cache for \"{}\" found in Memory.", key );
             }
         }
         return cachedValue;
@@ -71,23 +81,23 @@ public class MemoryDictManager extends AbstractDictManager<String> {
 
     @Override
     public void setValue( String key, Object value ) {
-        caches.put( key, value );
         if ( bridge.isLogEnable() ) {
-            bridge.printLog( "Set the cache value of key \"{}\" to Memory", key );
+            bridge.printLog( "Set the cache value of key \"{}\" to Memory.", key );
         }
+        caches.put( key, value );
     }
 
     @Override
     public boolean clear( String key ) {
         if ( bridge.isLogEnable() ) {
-            bridge.printLog( "Clear the cache value with the cache key of \"{}\"", key );
+            bridge.printLog( "Start clearing cache \"{}\" ...", key );
         }
         boolean deleted = caches.remove( key ) != null;
         if ( bridge.isLogEnable() ) {
             if ( deleted ) {
-                bridge.printLog( "Cleanup succeeded" );
+                bridge.printLog( "\"" + key + "\" cleanup succeeded." );
             } else {
-                bridge.printLog( "Invalid cleanup" );
+                bridge.printLog( "\"" + key + "\" cleanup failed." );
             }
         }
         return deleted;
@@ -95,15 +105,21 @@ public class MemoryDictManager extends AbstractDictManager<String> {
 
     @Override
     public void clearLanguage( String language ) {
-        Set<String> keys = caches.keySet();
         if ( bridge.isLogEnable() ) {
-            bridge.printLog( "Clear all Memory cache data whose cache keys end in \"{}\"", language );
-            bridge.printLog( "The list keys: {}", keys );
+            bridge.printLog( "Start clearing all cached data ending in \"{}\" ...", language );
         }
-        for ( String key : keys ) {
-            if ( key.endsWith( language ) ) {
-                caches.remove( key );
+        Set<String> keys = getKeys( language );
+        if ( !ObjectUtils.isEmpty( keys ) ) {
+            for ( String key : keys ) {
+                boolean deleted = caches.remove( key ) != null;
+                if ( deleted ) {
+                    bridge.printLog( "\"" + key + "\" cleanup succeeded." );
+                } else {
+                    bridge.printLog( "\"" + key + "\" cleanup failed." );
+                }
             }
+        } else if ( bridge.isLogEnable() ) {
+            bridge.printLog( "There are no keys to clean up." );
         }
     }
 

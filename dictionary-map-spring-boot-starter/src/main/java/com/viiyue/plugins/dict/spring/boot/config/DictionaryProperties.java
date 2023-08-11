@@ -71,6 +71,11 @@ public class DictionaryProperties {
     private Locale locale;
     
     /**
+     * The delimiter of the key
+     */
+    private String demiliter = ".";
+    
+    /**
      * Locale query name
      */
     private String localeQuery = "lang";
@@ -99,6 +104,11 @@ public class DictionaryProperties {
      * The wrapper text for the database keyword, the default is: {@code `}.
      */
     private String columnWrapText = "`"; // `table` or `column`
+    
+    /**
+     * Error status code starting value
+     */
+    private int errorStatusCodeStartingValue = 9999;
 
     public boolean isRedisFirst() {
         return redisFirst;
@@ -128,6 +138,10 @@ public class DictionaryProperties {
         return locale;
     }
     
+    public final String getDemiliter() {
+        return demiliter;
+    }
+    
     public final String getLocaleQuery() {
         return localeQuery;
     }
@@ -154,6 +168,10 @@ public class DictionaryProperties {
     
     public final String [] getExpands() {
         return expands;
+    }
+    
+    public final int getErrorStatusCodeStartingValue() {
+        return errorStatusCodeStartingValue;
     }
 
     public final LogLevel getLogLevel() {
