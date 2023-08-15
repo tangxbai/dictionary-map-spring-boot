@@ -24,9 +24,10 @@ import java.util.Objects;
 
 import javax.sql.DataSource;
 
+import org.springframework.util.Assert;
+
 import com.viiyue.plugins.dict.spring.boot.function.SqlProvider;
 import com.viiyue.plugins.dict.spring.boot.meta.ParameterBridge;
-import com.viiyue.plugins.dict.spring.boot.utils.Assert;
 import com.viiyue.plugins.dict.spring.boot.utils.Helper;
 
 import lombok.extern.slf4j.Slf4j;
@@ -116,7 +117,7 @@ class AbstractDbManager extends AbstractManager {
     }
 
     protected <R> R doTransactional( R defValue, SqlProvider<Connection, R> fun ) {
-        Assert.notNull( fun, 1, "You must specify a Function interface" );
+        Assert.notNull( fun, "You must specify a Function interface" );
         Connection connection = null;
         try {
             connection = dataSource.getConnection();
@@ -125,10 +126,12 @@ class AbstractDbManager extends AbstractManager {
             connection.commit();
             return result;
         } catch ( Exception e ) {
-            try {
-                connection.rollback();
-            } catch ( SQLException e1 ) {
-                printError( e );
+            if ( connection != null ) {
+                try {
+                    connection.rollback();
+                } catch ( SQLException e1 ) {
+                    printError( e );
+                }
             }
             if ( !handleTableNotExist( e ) ) {
                 printError( e );

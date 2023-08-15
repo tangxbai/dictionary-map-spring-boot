@@ -18,7 +18,6 @@ package com.viiyue.plugins.dict.spring.boot.config.mybatis;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
-import org.apache.ibatis.type.TypeHandlerRegistry;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -48,9 +47,8 @@ public class MybatisAutoConfiguration implements InitializingBean {
     public void afterPropertiesSet() throws Exception {
         if ( factory != null ) {
             Configuration configuration = factory.getConfiguration();
-            TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
-            typeHandlerRegistry.register( new DictionaryTypeHandler( dictManager ) );
             configuration.addInterceptor( new DictionaryInterceptor() );
+            configuration.getTypeHandlerRegistry().register( new DictionaryTypeHandler( dictManager ) );
         }
     }
 

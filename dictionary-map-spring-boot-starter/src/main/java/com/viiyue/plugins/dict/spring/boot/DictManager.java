@@ -15,6 +15,7 @@
  */
 package com.viiyue.plugins.dict.spring.boot;
 
+import static com.viiyue.plugins.dict.spring.boot.utils.Assert.CANNOT_BE_NULL_OR_EMPTY;
 import static org.springframework.util.ObjectUtils.isEmpty;
 
 import java.util.ArrayList;
@@ -144,7 +145,7 @@ public interface DictManager {
      * @return the dictionaries
      */
     default List<Dictionary> getAlways( @NonNull String ... keys ) {
-        Assert.notEmpty( keys, 5, "The cache keys cannot be null or empty" );
+        Assert.notEmpty( CANNOT_BE_NULL_OR_EMPTY, keys, "The cache keys cannot be null or empty", "keys" );
         List<Dictionary> dicts = new ArrayList<>( 16 );
         Arrays.asList( keys ).forEach( key -> dicts.addAll( getAlways( key ) ) );
         return dicts;
@@ -204,7 +205,7 @@ public interface DictManager {
      * @return the final matching dictionary value
      */
     default Dictionary matching( @NonNull String key, Predicate<Dictionary> predicate ) {
-        Assert.notNull( key, 2, "Please specify a dictionary key" );
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, key, "Please specify a dictionary key" );
         if ( predicate == null ) {
             return null;
         }

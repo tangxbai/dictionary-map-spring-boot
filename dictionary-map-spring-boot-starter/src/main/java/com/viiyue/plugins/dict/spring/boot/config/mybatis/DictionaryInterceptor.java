@@ -60,7 +60,7 @@ import com.viiyue.plugins.dict.spring.boot.meta.Dictionary;
     @Signature( 
         type = Executor.class, 
         method = "queryCursor", 
-        args = {  MappedStatement.class, Object.class, RowBounds.class }
+        args = { MappedStatement.class, Object.class, RowBounds.class }
     )
 })
 public class DictionaryInterceptor implements Interceptor {
@@ -83,9 +83,7 @@ public class DictionaryInterceptor implements Interceptor {
                             Dict dict = field.getAnnotation( Dict.class );
                             cache.put( column, dict == null ? null : dict.value() );
                         }
-                        if ( cache != null ) {
-                            ( ( DictionaryTypeHandler ) typeHandler ).setCacheKeys( cache );
-                        }
+                        ( ( DictionaryTypeHandler ) typeHandler ).setCacheKeys( cache );
                     }
                 }
             }

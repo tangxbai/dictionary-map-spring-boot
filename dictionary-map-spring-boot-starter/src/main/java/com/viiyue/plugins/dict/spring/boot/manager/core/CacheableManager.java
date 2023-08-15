@@ -15,6 +15,7 @@
  */
 package com.viiyue.plugins.dict.spring.boot.manager.core;
 
+import static com.viiyue.plugins.dict.spring.boot.utils.Assert.CANNOT_BE_NULL_OR_EMPTY;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.springframework.util.ObjectUtils.isEmpty;
@@ -92,7 +93,7 @@ class CacheableManager<K> extends AbstractManager {
     }
 
     public List<Dictionary> loadByKey( String language, String key ) {
-        Assert.notNull( key, 2, "The cache key cannot be null" );
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, key, "The cache key cannot be null" );
         String cacheKey = bridge.toCacheKey( null, key, delimiter );
         return bridge.fallbackWithLanguage( language, ( input, current ) -> {
             K languageKey = keyWithLanguage( cacheKey, current );

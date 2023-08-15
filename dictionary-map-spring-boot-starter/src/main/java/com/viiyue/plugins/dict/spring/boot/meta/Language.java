@@ -39,19 +39,25 @@ public class Language extends BaseEntity implements Serializable {
     private static final long serialVersionUID = -7673341517954340202L;
 
     private Long id; // COLUMN
+    
     @Getter( AccessLevel.NONE )
     @Setter( AccessLevel.NONE )
     private Locale lang; // COLUMN
+    
     private String label; // COLUMN
     private Integer orderIndex; // COLUMN
     private LocalDateTime createTime; // COLUMN
+    
+    // Helper fields
 
     @Getter( AccessLevel.NONE )
     @Setter( AccessLevel.NONE )
-    private transient String language;
+    private transient String language; // VIRTUAL FIELD
 
     @Setter( AccessLevel.NONE )
-    private transient String displayLabel;
+    private transient String displayLabel; // VIRTUAL FIELD
+    
+    // END
 
     public String getLang() {
         return language;

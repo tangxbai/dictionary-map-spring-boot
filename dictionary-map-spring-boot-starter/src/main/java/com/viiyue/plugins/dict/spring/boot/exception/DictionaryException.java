@@ -13,14 +13,24 @@ public class DictionaryException extends RuntimeException {
 
     private static final long serialVersionUID = -2615024500289602783L;
 
+    /** Error code value */
     private int code;
+    
+    /** Error message description */
     private String message;
-    private Object [] varargs;
+    
+    /** Format parameters, which may be objects or array objects. */
+    private Object varargs;
 
     public DictionaryException( int code, String message ) {
         super( message );
         this.code = DictContext.settings().getErrorStatusCodeStartingValue() + code;
         this.message = message;
+    }
+    
+    public DictionaryException( int code, String message, Object arg ) {
+        this( code, format( message, arg) );
+        this.varargs = arg;
     }
 
     public DictionaryException( int code, String message, Object ... varargs ) {
@@ -33,7 +43,7 @@ public class DictionaryException extends RuntimeException {
         this.code = 0;
         this.message = cause.getMessage();
     }
-
+    
     public static final void throwing( Throwable cause ) {
         throw new DictionaryException( cause );
     }
@@ -42,6 +52,10 @@ public class DictionaryException extends RuntimeException {
         throw new DictionaryException( code, message );
     }
 
+    public static final void throwing( int code, String message, Object arg ) {
+        throw new DictionaryException( code, message, arg );
+    }
+    
     public static final void throwing( int code, String message, Object ... varargs ) {
         throw new DictionaryException( code, message, varargs );
     }

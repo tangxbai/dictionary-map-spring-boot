@@ -52,10 +52,9 @@ class QueryableManager extends AbstractDbManager {
     public Dictionary queryById( String language, Long id ) {
         String table = bridge.props().getDictTable( language );
         String sql = bridge.sql().query( table, "id" );
-        List<Dictionary> dictionaries = queryList( Dictionary.class, language, sql, Dictionary::new, statement -> {
+        return queryOne( Dictionary.class, sql, Dictionary::new, statement -> {
             statement.setObject( 1, id );
         } );
-        return dictionaries == null || dictionaries.size() >= 1 ? dictionaries.get( 0 ) : null;
     }
 
     public List<Dictionary> queryByIds( String language, List<Long> ids ) {

@@ -15,6 +15,11 @@
  */
 package com.viiyue.plugins.dict.spring.boot.manager.core;
 
+import static com.viiyue.plugins.dict.spring.boot.utils.Assert.ALREADY_EXISTS;
+import static com.viiyue.plugins.dict.spring.boot.utils.Assert.CANNOT_BE_NULL_OR_EMPTY;
+import static com.viiyue.plugins.dict.spring.boot.utils.Assert.CANNOT_BE_THE_SAME;
+import static com.viiyue.plugins.dict.spring.boot.utils.Assert.DOSE_NOT_EXIST;
+import static com.viiyue.plugins.dict.spring.boot.utils.Assert.ITEM_CANNOT_BE_NULL_OR_EMPTY;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.springframework.util.ObjectUtils.isEmpty;
@@ -100,7 +105,7 @@ public abstract class AbstractDictManager<K> extends CacheableResolver<K> implem
 
     @Override
     public List<Dictionary> getAlways( @NonNull String key ) {
-        Assert.notEmpty( key, 2, "Please specify a dictionary key" );
+        Assert.notEmpty( CANNOT_BE_NULL_OR_EMPTY, key, "Please specify a dictionary key", "key" );
         return cacheable.loadByKey( bridge.getLanguage(), key );
     }
 
@@ -111,7 +116,7 @@ public abstract class AbstractDictManager<K> extends CacheableResolver<K> implem
 
     @Override
     public boolean add( @Nullable Locale locale, @NonNull Dictionary dict ) {
-        Assert.notNull( dict, 3, "Entry cannot be null" );
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, dict, "Dictionary entry cannot be null", "dict" );
         String lang = bridge.toLanguage( locale );
         String table = bridge.props().getDictTable( lang );
         if ( updateable.insert( table, dict ) > 0 ) {
@@ -125,7 +130,7 @@ public abstract class AbstractDictManager<K> extends CacheableResolver<K> implem
 
     @Override
     public boolean addBatch( @Nullable Locale locale, @NonNull List<Dictionary> dictionaries ) {
-        Assert.notEmpty( dictionaries, 5, "Entries cannot be null or empty" );
+        Assert.notEmpty( CANNOT_BE_NULL_OR_EMPTY, dictionaries, "Dictionaries cannot be null or empty", "dictionaries" );
         String lang = bridge.toLanguage( locale );
         String table = bridge.props().getDictTable( lang );
         if ( updateable.insertBatch( table, dictionaries ) > 0 ) {
@@ -139,12 +144,12 @@ public abstract class AbstractDictManager<K> extends CacheableResolver<K> implem
 
     @Override
     public int update( @Nullable Locale locale, @NonNull Dictionary dict ) {
-        Assert.notNull( dict, 3, "Entry cannot be null" );
-        Assert.notNull( dict.getId(), 4, "Entry id cannot be null" );
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, dict, "Dictionary entry cannot be null", "dict" );
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, dict.getId(), "Dictionary id cannot be null", "dict<id>" );
 
         String lang = bridge.toLanguage( locale );
         Dictionary original = queryable.queryById( lang, dict.getId() );
-        Assert.notNull( original, 6, "The dictionary dose not exsit ( id: {0} )", dict.getId() );
+        Assert.notNull( DOSE_NOT_EXIST, original, "The dictionary dose not exsit ( id: {0} )", dict.getId() );
 
         String table = bridge.props().getDictTable( lang );
         int updated = updateable.update( table, dict );
@@ -163,21 +168,26 @@ public abstract class AbstractDictManager<K> extends CacheableResolver<K> implem
 
     @Override
     public int updateBatch( @Nullable Locale locale, @NonNull List<Dictionary> dictionaries ) {
-        Assert.notEmpty( dictionaries, 5, "Entries cannot be null or empty" );
+        Assert.notEmpty( CANNOT_BE_NULL_OR_EMPTY, dictionaries, "Dictionaries cannot be null or empty", "dictionaries" );
 
+        // Invalid check
         for ( int i = 0, s = dictionaries.size(); i < s; i ++ ) {
             Dictionary dict = dictionaries.get( i );
-            Assert.notNull( dict, 3, "Entry cannot be null( index: {0} )", i );
-            Assert.notNull( dict.getId(), 4, "The entry \"id\" cannot be null( index: {0} )", i );
+            Assert.notNull( ITEM_CANNOT_BE_NULL_OR_EMPTY, dict, "Entry cannot be null( index: {0} )", i );
+            Assert.notNull( ITEM_CANNOT_BE_NULL_OR_EMPTY, dict.getId(), "The entry \"id\" cannot be null( index: {0} )", i );
         }
-
+        
+        // Query all keys before modification
         String lang = bridge.toLanguage( locale );
         List<Long> ids = dictionaries.stream().map( Dictionary::getId ).distinct().collect( toList() );
         List<Dictionary> originals = queryable.queryByIds( lang, ids );
 
+        // Then perform the modify operation 
         String table = bridge.props().getDictTable( lang );
         int updated = updateable.updateBatch( table, dictionaries );
         if ( updated > 0 ) {
+            
+            // Refresh the cache
             Set<String> updatedKeys = collectKeys( dictionaries, toSet() );
             if ( !isEmpty( originals ) ) {
                 updatedKeys.addAll( collectKeys( originals, toSet() ) );
@@ -193,12 +203,13 @@ public abstract class AbstractDictManager<K> extends CacheableResolver<K> implem
 
     @Override
     public int change( @Nullable Locale locale, @NonNull String key, @Nullable Integer code, boolean enabled ) {
-        Assert.notNull( key, 2, "Please specify a dictionary key" );
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, key, "Please specify a dictionary key", "key" );
         return change( bridge.toLanguage( locale ), key, code, enabled );
     }
     
     @Override
     public int changeAll( @NonNull String key, @Nullable Integer code, boolean status ) {
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, key, "Please specify a dictionary key", "key" );
         int updated = 0;
         List<Language> languages = cacheable.loadLanguages();
         if ( !isEmpty( languages ) ) {
@@ -211,12 +222,13 @@ public abstract class AbstractDictManager<K> extends CacheableResolver<K> implem
 
     @Override
     public int remove( @Nullable Locale locale, @NonNull String key, @Nullable Integer code ) {
-        Assert.notNull( key, 2, "Please specify a dictionary key" );
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, key, "Please specify a dictionary key", "key" );
         return remove( bridge.toLanguage( locale ), key, code );
     }
     
     @Override
     public int removeAll( @NonNull String key, @Nullable Integer code ) {
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, key, "Please specify a dictionary key", "key" );
         int result = 0;
         List<Language> languages = cacheable.loadLanguages();
         if ( !isEmpty( languages ) ) {
@@ -229,28 +241,32 @@ public abstract class AbstractDictManager<K> extends CacheableResolver<K> implem
 
     @Override
     public boolean addLanguage( @NonNull Language language ) {
-        Assert.notNull( language, 3, "Entry cannot be null" );
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, language, "Language entry cannot be null", "language" );
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, language.getLang(), "Entry id cannot be null", "language<lang>" );
         String lang = language.getLang();
         SqlResolver sqlResolver = bridge.sql();
         DictionaryProperties props = bridge.props();
         String langTable = props.getLanguageTable();
         
+        // Data configuration and check
         List<Language> languages = getLanguages();
         if ( !isEmpty( languages ) ) {
+            // Fix the order index value
             if ( language.getOrderIndex() == null ) {
                 OptionalInt optional = languages.stream().mapToInt( Language::getOrderIndex ).max();
                 if ( optional.isPresent() ) {
                     language.setOrderIndex( optional.getAsInt() + 1 );
                 }
             }
+            // Detect if it has been added
             for ( Language ln : languages ) {
                 if ( ln.sameWith( lang ) ) {
-                    DictionaryException.throwing( 6, "Language \"{0}\" already exists", lang );
+                    DictionaryException.throwing( ALREADY_EXISTS, "Language \"{0}\" already exists", lang );
                 }
             }
         }
         
-        String languageTag = bridge.toLanguage( language.getLang() );
+        String languageTag = bridge.toLanguage( lang );
         boolean updated = updateable.insert( langTable, language ) > 0;
         if ( updated ) {
             String source = props.getDictTable( null );
@@ -263,8 +279,8 @@ public abstract class AbstractDictManager<K> extends CacheableResolver<K> implem
 
     @Override
     public int updateLanguage( @NonNull Language language ) {
-        Assert.notNull( language, 3, "Entry cannot be null" );
-        Assert.notNull( language.getId(), 4, "The entry id cannot be null" );
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, language, "Language entry cannot be null" );
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, language.getId(), "Entry id cannot be null", "language<lang>" );
         int row = updateable.update( bridge.props().getLanguageTable(), language );
         if ( row > 0 ) {
             cacheable.reloadLanguagesIfNecessary();
@@ -274,13 +290,13 @@ public abstract class AbstractDictManager<K> extends CacheableResolver<K> implem
 
     @Override
     public int removeLanguage( @NonNull Locale locale ) {
-        Assert.notNull( locale, 2, "Please specify a language" );
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, locale, "Please specify a locale", "locale" );
         return updateable.doTransactional( 0, conn -> {
             DictionaryProperties props = bridge.props();
             String lang = bridge.toLanguage( locale );
-            String sql = bridge.sql().delete( props.getLanguageTable(), "lang" );
             
             // First, Remove the language entry
+            String sql = bridge.sql().delete( props.getLanguageTable(), "lang" );
             int row = updateable.doStatement( conn, 0, sql, statement -> {
                 statement.setObject( 1, locale.toLanguageTag() );
                 return statement.executeUpdate();
@@ -300,12 +316,13 @@ public abstract class AbstractDictManager<K> extends CacheableResolver<K> implem
     }
 
     @Override
-    public boolean addSnapshot( @NonNull Locale source, @NonNull Locale target ) {
-        Assert.notNull( target, 2, "Please specify the target language" );
+    public boolean addSnapshot( @Nullable Locale source, @NonNull Locale target ) {
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, target, "Please specify the target language", "target" );
         String sourceLang = bridge.toLanguage( source );
         String targetLang = bridge.toLanguage( target );
-        Assert.isFalse( Objects.equals( sourceLang, targetLang ), 7, "The target language cannot be the same as the source language", source );
-        Assert.isFalse( existsLanguage( target ), 8, "You need to add \"{0}\" language first", sourceLang );
+        Assert.isFalse( CANNOT_BE_THE_SAME, Objects.equals( sourceLang, targetLang ), 
+                "The target language cannot be the same as the source", source, target );
+        Assert.isFalse( DOSE_NOT_EXIST, existsLanguage( target ), "You need to add \"{0}\" language first", target );
         return updateable.doTransactional( false, conn -> {
             SqlResolver resolver = bridge.sql();
             String sourceTable = bridge.props().getDictTable( sourceLang );
@@ -321,7 +338,7 @@ public abstract class AbstractDictManager<K> extends CacheableResolver<K> implem
 
     @Override
     public boolean existsLanguage( @NonNull Locale source ) {
-        Assert.notNull( source, 2, "Please specify a language" );
+        Assert.notNull( CANNOT_BE_NULL_OR_EMPTY, source, "Please specify a language", "source" );
         List<Language> languages = getLanguages();
         if ( !isEmpty( languages ) ) {
             for ( Language language : languages ) {

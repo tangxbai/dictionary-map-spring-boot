@@ -76,9 +76,9 @@ class DictionaryAutoConfiguration implements ApplicationListener<ApplicationStar
 
     public DictionaryAutoConfiguration( 
         DictionaryProperties props, 
+        ObjectProvider<DataSource> dataSourceProvider,
         ObjectProvider<RedisTemplate<String, Object>> stringRedisProvider,
-        ObjectProvider<RedisTemplate<Object, Object>> objectRedisProvider, 
-        ObjectProvider<DataSource> dataSourceProvider ) {
+        ObjectProvider<RedisTemplate<Object, Object>> objectRedisProvider ) {
         this.props = props;
         this.dataSource = dataSourceProvider.getIfAvailable();
         this.stringRedis = stringRedisProvider.getIfAvailable();
@@ -169,7 +169,9 @@ class DictionaryAutoConfiguration implements ApplicationListener<ApplicationStar
         DictManager dictManager = context.getBean( DictManager.class );
         RequestMappingHandlerAdapter handlerAdapter = context.getBean( RequestMappingHandlerAdapter.class );
         List<HandlerMethodArgumentResolver> defaults = handlerAdapter.getArgumentResolvers();
-        List<HandlerMethodArgumentResolver> argumentResolvers = new ArrayList<>( defaults.size() + 1 );
+        
+        int capacity = defaults.size() + ( props.isLocaleArgumentResolver() ? 2 : 1 ); 
+        List<HandlerMethodArgumentResolver> argumentResolvers = new ArrayList<>( capacity );
         
         // Locale argument resolver for spring
         if ( props.isLocaleArgumentResolver() ) {
@@ -181,7 +183,7 @@ class DictionaryAutoConfiguration implements ApplicationListener<ApplicationStar
         argumentResolvers.addAll( defaults );
         handlerAdapter.setArgumentResolvers( Collections.unmodifiableList( argumentResolvers ) );
         
-        // Object dictionary converter for spring
+        // Dictionary object converter for spring
         ConverterRegistry converterRegistry = context.getBean( ConverterRegistry.class );
         converterRegistry.addConverter( new DictionaryConverter( dictManager ) );
     }
